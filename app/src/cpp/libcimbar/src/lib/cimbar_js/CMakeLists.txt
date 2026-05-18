@@ -44,7 +44,7 @@ target_link_libraries(cimbar_js
 
 # asm.js vs wasm
 if(USE_WASM EQUAL "2")
-	set (LINK_WASM_OPT "-s SINGLE_FILE=1")
+	set (LINK_WASM_OPT "-s SINGLE_FILE=1 --closure 1")
 else()
 	set (LINK_WASM_OPT "-s WASM=1")
 endif()
@@ -90,6 +90,7 @@ set (LINK_WASM_LIST
 	-s FILESYSTEM=0
 	-s TOTAL_MEMORY=134217728
 	-s EXPORTED_FUNCTIONS='[${LINK_WASM_EXPORTED_FUNCTIONS}]'
+	-s EXPORTED_RUNTIME_METHODS=['HEAPU8']
 )
 string(REPLACE ";" " " LINK_WASM_FLAGS "${LINK_WASM_LIST}")
 

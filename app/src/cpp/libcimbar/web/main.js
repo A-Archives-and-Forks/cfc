@@ -10,6 +10,7 @@ var Main = function () {
   var _counter = 0;
   var _renderTime = 0;
 
+  var _lastFrame = 0; // used with _interval
   var _wakeLock = undefined;
 
   // cached
@@ -25,12 +26,21 @@ var Main = function () {
     }
   }
 
-  function importFile(file) {
-    let chunkSize = Module._cimbare_encode_bufsize();
+  function compress_buff(chunkSize) {
     if (_compressBuff === undefined) {
       const dataPtr = Module._malloc(chunkSize);
       _compressBuff = new Uint8Array(Module.HEAPU8.buffer, dataPtr, chunkSize);
     }
+    else if (_compressBuff.buffer !== Module.HEAPU8.buffer) {
+      _compressBuff = new Uint8Array(Module.HEAPU8.buffer, _compressBuff.byteOffset, _compressBuff.byteLength);
+    }
+    return _compressBuff;
+  }
+
+  function importFile(file) {
+    let chunkSize = Module._cimbare_encode_bufsize();
+    let compBuff = compress_buff(chunkSize);
+
     let offset = 0;
     let reader = new FileReader();
 
@@ -41,8 +51,9 @@ var Main = function () {
       if (datalen > 0) {
         // copy to wasm buff and write
         const uint8View = new Uint8Array(event.target.result);
-        _compressBuff.set(uint8View);
-        const buffView = new Uint8Array(Module.HEAPU8.buffer, _compressBuff.byteOffset, datalen);
+        compBuff = compress_buff(chunkSize);
+        compBuff.set(uint8View);
+        const buffView = new Uint8Array(Module.HEAPU8.buffer, compBuff.byteOffset, datalen);
         Main.encode_bytes(buffView);
 
         offset += chunkSize;
@@ -53,7 +64,7 @@ var Main = function () {
 
         // this null call is functionally a flush()
         // so a no-op, unless it isn't
-        const nullBuff = new Uint8Array(Module.HEAPU8.buffer, _compressBuff.byteOffset, 0);
+        const nullBuff = new Uint8Array(Module.HEAPU8.buffer, compBuff.byteOffset, 0);
         Main.encode_bytes(nullBuff);
       }
     };
@@ -240,20 +251,22 @@ var Main = function () {
       Main.blurNav(false);
     },
 
-    nextFrame: function () {
+    nextFrame: function (timestamp) {
+      requestAnimationFrame(Main.nextFrame);
+      let elapsed = timestamp - _lastFrame;
+      if (!timestamp || elapsed < _interval) {
+        return;
+      }
+      _lastFrame = timestamp;
+
       _counter += 1;
       if (_pause > 0) {
         _pause -= 1;
       }
-      var start = performance.now();
       if (!Main.isPaused()) {
         Module._cimbare_render();
         var frameCount = Module._cimbare_next_frame(_colorBalance);
       }
-
-      var elapsed = performance.now() - start;
-      var nextInterval = _interval > elapsed ? _interval - elapsed : 0;
-      setTimeout(Main.nextFrame, nextInterval);
 
       if (_showStats && frameCount) {
         _renderTime += elapsed;
