@@ -9,7 +9,7 @@ android {
         applicationId "org.cimbar.camerafilecopy"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 23
+        versionCode 24
         versionName "0.6.6"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         ndk {
