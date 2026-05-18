@@ -10,7 +10,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 35
         versionCode 23
-        versionName "0.7.0b"
+        versionName "0.6.6"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters "arm64-v8a"
@@ -48,8 +48,15 @@ dependencies {
 }
 
 preBuild.doFirst {
-    if (!file("src/main/assets/cimbar_js.html").exists()) {
+    def cimbarJs = file("src/main/assets/cimbar_js.html")
+    if (!cimbarJs.exists()) {
         throw new GradleException("Missing cimbar-js-bits submodule?")
+    }
+    def digest = java.security.MessageDigest.getInstance("SHA-256")
+    def actual = digest.digest(cimbarJs.bytes).collect { String.format("%02x", it) }.join("")
+	def expected = "3c3163323c2471f3f4b795f244145cda76f1ab23dc66f6ac09fb288ae9d26db6" // v0.6.5
+    if (actual != expected) {
+        throw new GradleException("cimbar-js-bits SHA-256 mismatch :(\n  expected: ${expected}\n  actual:   ${actual}")
     }
 }
 
